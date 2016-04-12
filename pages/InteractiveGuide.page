@@ -1,0 +1,101 @@
+<apex:page controller="InteractiveGuideController" title="Interactive Guide" sidebar="false">
+    <apex:outputPanel id="message">
+        <apex:pageMessages rendered="{!hasMessages}"/>
+    </apex:outputPanel>
+    <apex:sectionHeader title="Interactive Guide" />
+    <apex:form >
+        <apex:outputPanel id="recordingDevice" layout="block">Recording Device: &nbsp;&nbsp;
+            <apex:selectList value="{!selectedRecordingDevice}" size="1">
+                <apex:selectOptions value="{!recordingDeviceOptions}" />
+                <apex:actionSupport action="{!populateChannelBroadcasts}" event="onchange" reRender="channel,message" status="loading" />
+            </apex:selectList>
+        </apex:outputPanel><br></br>
+
+        <apex:actionstatus id="loading">
+            <apex:facet name="start">
+                <span class="waitingSearchDiv" id="el_loading" style=" background-color: #fbfbfb ;height: 100%;opacity:0.65;width:100%;">
+                    <span class="waitingHolder" style="top : 50%; width: 91px;">
+                        <img class="waitingImage" src="/img/loading.gif" title="Loading..." />
+                        <span style="font-size: 15px;">Loading...</span >
+                    </span>
+                </span>
+            </apex:facet>
+        </apex:actionstatus>
+
+        <apex:panelGrid columns="2" width="50%" id="panelGrid">
+            <apex:outputPanel id="pagination" layout="block">
+                <apex:outputText value="<Previous | " rendered="{!if(paginateNumber == 0, true, false)}" />
+                <apex:commandLink action="{!previous}" value="<Previous | " id="previousLink" 
+                                  reRender="channel,pagination,message" rendered="{!if(paginateNumber > 0, true, false)}" status="loading"/>
+
+                <apex:commandLink action="{!next}" value="Next>" id="nextLink" reRender="channel,pagination,message" 
+                                  rendered="{!if(paginateNumber == 7, false, true)}" status="loading"/>
+                <apex:outputText value="Next>" rendered="{!if(paginateNumber == 7, true, false)}"/>&nbsp;&nbsp;
+                <apex:outputText value="Currnet Page: {!paginateNumber + 1}" />
+            </apex:outputPanel>
+
+            <apex:outputPanel id="broadcastPanel" layout="block" rendered="{!showBroadCastDetails}">
+                <apex:pageBlock id="broadcastBlock" title="Broadcast Details">
+                    <apex:pageBlockButtons location="bottom">
+                        <apex:commandButton action="{!subscribeNow}" value="Subscribe Now!" rendered="{!NOT(isSubscribedChannels)}" 
+                                            reRender="broadcastPanel" status="loading"/>
+                        <apex:commandButton action="{!record}" value="Record" 
+                                            rendered="{!isSubscribedChannels&&broadcastScheduleRecordingStatusMap[selectedBroadcast.Id]==0}" 
+                                            reRender="panelGrid,channel,message" status="loading"/>
+                        <apex:commandButton action="{!recordAll}" value="Record All" 
+                                            rendered="{!isSubscribedChannels&&broadcastScheduleRecordingStatusMap[selectedBroadcast.Id]==0}" 
+                                            reRender="panelGrid,channel,message" status="loading"/>
+                        <apex:commandButton action="{!cancelRecording}" value="Cancel Recording" 
+                                            rendered="{!isSubscribedChannels&&broadcastScheduleRecordingStatusMap[selectedBroadcast.Id]!=0}" 
+                                            reRender="panelGrid,channel" status="loading"/>
+                    </apex:pageBlockButtons>
+                    <apex:pageBlockSection columns="1">
+                        <apex:outputField value="{!selectedBroadcast.Show__r.Name}" />
+                        <apex:outputField value="{!selectedBroadcast.Description__c}" />
+                        <apex:outputText value="<b>Note:</b> This recording has resulted in a conflict and cannot be recorded." escape="false"
+                                         rendered="{!selectedBroadcast.Id != null && broadcastScheduleRecordingStatusMap[selectedBroadcast.Id]==2}" />
+                    </apex:pageBlockSection>
+                </apex:pageBlock>
+            </apex:outputPanel>
+        </apex:panelGrid>
+
+        <apex:actionFunction name="showDetail" action="{!showBroadCastDetail}" reRender="panelGrid,message" status="loading">
+            <apex:param name="selectedBroadcastID" assignTo="{!selectedBroadcastID}" value="" />
+        </apex:actionFunction>
+
+        <apex:outputPanel id="channel" layout="block">
+            <table border="1" width="100%">
+                <tbody>
+                    <tr>
+                        <td><b>Channel</b></td>
+                        <apex:repeat var="ts" value="{!userLocalTimeList}">
+                            <td>
+                                <b>
+                                    <apex:outputText value="{0, date, EEE, MMM d}"><apex:param value="{!ts}"/></apex:outputText><br></br>
+                                    <apex:outputText value="{0, date, h:mm a}"><apex:param value="{!ts}"/></apex:outputText>
+                                </b>
+                            </td>
+                        </apex:repeat>
+                    </tr>
+                    <apex:repeat var="c" value="{!channelList}">
+                        <tr>
+                            <td><b><apex:outputText value="{!c}" /></b></td>
+                            <apex:repeat var="cb" value="{!channelBroadcastMap[c]}">
+                                <td>
+                                    <apex:outputLink value="#" rendered="{!cb.Id != null}" 
+                                            onclick="showDetail('{!cb.Id}')">
+                                        {!cb.Show__r.Name}
+                                    </apex:outputLink>
+
+                                    <b><apex:outputText value="X" rendered="{!cb.Id != null && broadcastScheduleRecordingStatusMap[cb.Id] == 2}" /></b>
+                                    <b><apex:outputText value="O" rendered="{!cb.Id != null && broadcastScheduleRecordingStatusMap[cb.Id] == 1}" /></b>
+                                    <apex:outputText value="No Data" rendered="{!cb.Id == null}" />
+                                </td>
+                            </apex:repeat>
+                        </tr>
+                    </apex:repeat>
+                </tbody>
+            </table>
+        </apex:outputPanel>
+    </apex:form>
+</apex:page>
