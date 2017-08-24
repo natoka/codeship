@@ -20,6 +20,8 @@ trigger ScheduledRecording on Recording__c (after insert, after update, after de
     triggerInstance.bind(TriggerUtility.Evt.afterupdate, new ScheduledRecordingHandler());
     triggerInstance.bind(TriggerUtility.Evt.afterdelete, new ScheduledRecordingHandler());
 
+
+
     // Executes the assosicated hanlders
     triggerInstance.manage();
 }
